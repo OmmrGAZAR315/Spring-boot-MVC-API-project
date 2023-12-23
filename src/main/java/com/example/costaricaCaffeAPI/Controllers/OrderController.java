@@ -38,25 +38,6 @@ public class OrderController {
 
     }
 
-    @PostMapping("/coffee")
-    public Beverage coffee(@RequestBody Coffee coffee) {
-        return coffee;
-    }
-
-    @PostMapping("/tea")
-    public Beverage tea(@RequestBody Tea tea) {
-        return tea;
-    }
-
-    @PatchMapping("/addMilk")
-    public Beverage addMilk(@RequestBody Coffee beverage) {
-        return new MilkDecorator(beverage);
-    }
-
-    @PatchMapping("/addHoney")
-    public Beverage addHoney(@RequestBody Tea beverage) {
-        return new HoneyDecorator(beverage);
-    }
 
     @PostMapping
     public Order store(@RequestBody Coffee beverage) {
@@ -115,6 +96,8 @@ public class OrderController {
         }
         return order;
     }
+
+
 
     @PatchMapping
     public Order update(@RequestBody ObjectRequest objectRequest) {

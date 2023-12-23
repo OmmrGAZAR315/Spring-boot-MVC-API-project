@@ -1,22 +1,31 @@
 package com.example.costaricaCaffeAPI.Models;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import org.springframework.lang.Nullable;
 
 public abstract class Beverage {
-    private int id;
     private String ownerName;
     private String type;
+    @JsonIgnore
     private double cost;
     private String description;
     private String size;
+    @JsonIgnore
     private double gram;
 
     public Beverage() {
     }
 
-    public Beverage(String ownerName, double cost, String size) {
+    public Beverage(String ownerName, String size) {
         setOwnerName(ownerName);
-        setCost(cost);
         setSize(size);
+    }
+
+    @JsonIgnore
+    public void setCost(double cost) {
+        this.cost = cost;
     }
 
     public String getType() {
@@ -42,29 +51,20 @@ public abstract class Beverage {
         this.size = size;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
 
     public String getOwnerName() {
         return ownerName;
+    }
+
+    @JsonGetter("cost")
+    public double getCost() {
+        return Math.floor(cost);
     }
 
     public void setOwnerName(String ownerName) {
         this.ownerName = ownerName;
     }
 
-    public double getCost() {
-        return cost;
-    }
-
-    public void setCost(double cost) {
-        this.cost = cost;
-    }
 
     public String getDescription() {
         if (description != null)
@@ -81,11 +81,12 @@ public abstract class Beverage {
         return size;
     }
 
-
+   @JsonGetter("gram")
     public double getGram() {
         return gram;
     }
 
+    @JsonIgnore
     public void setGram(double mg) {
         this.gram = mg;
     }

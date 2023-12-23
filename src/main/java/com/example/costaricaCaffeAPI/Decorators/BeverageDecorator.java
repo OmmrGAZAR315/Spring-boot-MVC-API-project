@@ -18,10 +18,6 @@ public abstract class BeverageDecorator extends Beverage {
         return wrapper.getType();
     }
 
-    @Override
-    public int getId() {
-        return wrapper.getId();
-    }
 
     @Override
     public String getOwnerName() {

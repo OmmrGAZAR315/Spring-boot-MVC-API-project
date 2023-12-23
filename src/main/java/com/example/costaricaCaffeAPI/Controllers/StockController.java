@@ -3,12 +3,12 @@ package com.example.costaricaCaffeAPI.Controllers;
 import com.example.costaricaCaffeAPI.Models.Stock;
 import com.example.costaricaCaffeAPI.Requests.ObjectRequest;
 import com.example.costaricaCaffeAPI.dbConnection;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/api/stock")
@@ -33,7 +33,6 @@ public class StockController {
             throw new RuntimeException(ex);
         }
         return stockList;
-
     }
 
     @PatchMapping("refill/{type}/{quantity}")
@@ -55,7 +54,8 @@ public class StockController {
     @PostMapping
     public Stock store(@RequestBody Stock stock) {
         checkUnique(stock.getType());
-
+        Random random = new Random();
+        double price =  Math.floor(random.nextDouble(744) + 1);
         String insertSql =
                 "INSERT INTO stock (type, quantity,vendorName,price) " +
                         "VALUES (?, ?,?, ? )";
@@ -63,7 +63,7 @@ public class StockController {
             preparedStatement.setString(1, stock.getType());
             preparedStatement.setDouble(2, stock.getQuantity());
             preparedStatement.setString(3, stock.getVendorName());
-            preparedStatement.setDouble(4, stock.getPrice());
+            preparedStatement.setDouble(4, price);
 
             int rowsAffected = preparedStatement.executeUpdate();
 
@@ -78,7 +78,7 @@ public class StockController {
                             stock.getType(),
                             stock.getQuantity(),
                             stock.getVendorName(),
-                            stock.getPrice()
+                           price
                     );
                 } else {
                     throw new SQLException("Creating user failed, no ID obtained.");
@@ -90,7 +90,7 @@ public class StockController {
     }
 
     @DeleteMapping
-    public Stock destroy(@RequestBody ObjectRequest objectRequest) throws JsonProcessingException {
+    public Stock destroy(@RequestBody ObjectRequest objectRequest)  {
         String deleteSql = "DELETE FROM stock WHERE " + objectRequest.getWhere() + " = ?";
         Stock stock = getStockBY(objectRequest);
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {

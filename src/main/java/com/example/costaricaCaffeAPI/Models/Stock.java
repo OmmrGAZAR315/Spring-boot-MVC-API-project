@@ -13,7 +13,6 @@ public class Stock {
         setQuantity(quantity);
         setVendorName(vendorName);
         setPrice(price);
-
     }
 
     public int getId() {
