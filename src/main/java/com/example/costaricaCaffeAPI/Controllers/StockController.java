@@ -1,0 +1,219 @@
+package com.example.costaricaCaffeAPI.Controllers;
+
+import com.example.costaricaCaffeAPI.Models.Stock;
+import com.example.costaricaCaffeAPI.dbConnection;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.web.bind.annotation.*;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/stock")
+public class StockController {
+    @GetMapping
+    public List<Stock> index() {
+        List<Stock> stockList = new ArrayList<>();
+        String selectSql = "SELECT * FROM stock";
+        try (Statement statement = dbConnection.getConnection().createStatement();
+             ResultSet resultSet = statement.executeQuery(selectSql)) {
+            while (resultSet.next()) {
+                Stock stock = new Stock(
+                        resultSet.getInt("id"),
+                        resultSet.getString("type"),
+                        resultSet.getDouble("quantity"),
+                        resultSet.getString("vendorName"),
+                        resultSet.getDouble("price")
+                );
+                stockList.add(stock);
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+        return stockList;
+
+    }
+
+    @PostMapping
+    public Stock store(@RequestBody Stock stock) {
+        checkUnique(stock.getType());
+
+        String insertSql =
+                "INSERT INTO stock (type, quantity,vendorName,price) " +
+                        "VALUES (?, ?,?, ? )";
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, stock.getType());
+            preparedStatement.setDouble(2, stock.getQuantity());
+            preparedStatement.setString(3, stock.getVendorName());
+            preparedStatement.setDouble(4, stock.getPrice());
+
+            int rowsAffected = preparedStatement.executeUpdate();
+
+            if (rowsAffected == 0) {
+                throw new SQLException("Creating user failed, no rows affected.");
+            }
+
+            try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return new Stock(
+                            generatedKeys.getInt(1),
+                            stock.getType(),
+                            stock.getQuantity(),
+                            stock.getVendorName(),
+                            stock.getPrice()
+                    );
+                } else {
+                    throw new SQLException("Creating user failed, no ID obtained.");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @DeleteMapping
+    public Stock destroy(@RequestBody ObjectRequest objectRequest) throws JsonProcessingException {
+        String deleteSql = "DELETE FROM stock WHERE " + objectRequest.getWhere() + " = ?";
+        Stock stock = getStockByID(objectRequest);
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {
+            if (objectRequest.getId() == 0)
+                preparedStatement.setString(1, objectRequest.getWhereValue());
+            else
+                preparedStatement.setInt(1, objectRequest.getId());
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException("Deleting stock failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return stock;
+    }
+
+    @PatchMapping
+    public Stock update(@RequestBody ObjectRequest objectRequest) {
+        String updateSql = "UPDATE stock SET " + objectRequest.getUpdateColumn()
+                + " = ? WHERE  " + objectRequest.getWhere() + "  = ?";
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(updateSql, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, objectRequest.getUpdateValue());
+
+            if (objectRequest.getId() == 0)
+                preparedStatement.setString(2, objectRequest.getWhereValue());
+            else
+                //getWhere() is id
+                preparedStatement.setInt(2, objectRequest.getId());
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException("Updating stock failed, no rows affected.");
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return getStockByID(objectRequest);
+    }
+
+    Stock getStockByID(ObjectRequest objectRequest) {
+        String selectSql = "SELECT * FROM stock WHERE " + objectRequest.getWhere() + " = ?";
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
+            if (objectRequest.getId() == 0)
+                preparedStatement.setString(1, objectRequest.getWhereValue());
+            else
+                preparedStatement.setInt(1, objectRequest.getId());
+
+
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return new Stock(
+                            resultSet.getInt("id"),
+                            resultSet.getString("type"),
+                            resultSet.getDouble("quantity"),
+                            resultSet.getString("vendorName"),
+                            resultSet.getDouble("price")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    void checkUnique(String columnValue) {
+        String checkUniquenessSql = "SELECT COUNT(*) FROM stock WHERE type = ?";
+        try (PreparedStatement checkStatement = dbConnection.getConnection().prepareStatement(checkUniquenessSql)) {
+            checkStatement.setString(1, columnValue);
+
+            try (ResultSet resultSet = checkStatement.executeQuery()) {
+                if (resultSet.next() && resultSet.getInt(1) > 0)
+                    throw new RuntimeException("Duplicate value");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+}
+
+class ObjectRequest {
+    private int id;
+    private String updateColumn;
+    private String updateValue;
+    private String where;
+    private String whereValue;
+
+    public ObjectRequest(int id, String updateColumn, String updateValue, String where, String whereValue) {
+        setId(id);
+        setUpdateColumn(updateColumn);
+        setUpdateValue(updateValue);
+        setWhere(where);
+        setWhereValue(whereValue);
+
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getUpdateColumn() {
+        return updateColumn;
+    }
+
+    public void setUpdateColumn(String updateColumn) {
+        this.updateColumn = updateColumn;
+    }
+
+    public String getUpdateValue() {
+        return updateValue;
+    }
+
+    public void setUpdateValue(String updateValue) {
+        this.updateValue = updateValue;
+    }
+
+    public String getWhere() {
+        return where;
+    }
+
+    public void setWhere(String where) {
+        this.where = where;
+    }
+
+    public String getWhereValue() {
+        return whereValue;
+    }
+
+    public void setWhereValue(String whereValue) {
+        this.whereValue = whereValue;
+    }
+}
