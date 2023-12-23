@@ -36,6 +36,22 @@ public class StockController {
 
     }
 
+    @PatchMapping("refill/{type}/{quantity}")
+    public Stock reFillStock(@PathVariable String type, @PathVariable double quantity) {
+        String selectSql = "UPDATE stock SET quantity = ?+quantity WHERE type = ?";
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
+            preparedStatement.setDouble(1, quantity);
+            preparedStatement.setString(2, type);
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException("Updating stock failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return getStockBY(new ObjectRequest(null, null, "type", type));
+    }
+
     @PostMapping
     public Stock store(@RequestBody Stock stock) {
         checkUnique(stock.getType());
@@ -91,7 +107,7 @@ public class StockController {
     }
 
     @PatchMapping
-    public Stock update(@RequestBody ObjectRequest objectRequest) {
+    public static Stock update(@RequestBody ObjectRequest objectRequest) {
         String updateSql = "UPDATE stock SET " + objectRequest.getUpdateColumn()
                 + " = ? WHERE  " + objectRequest.getWhere() + "  = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(updateSql, Statement.RETURN_GENERATED_KEYS)) {
@@ -109,7 +125,7 @@ public class StockController {
         return getStockBY(objectRequest);
     }
 
-    Stock getStockBY(ObjectRequest objectRequest) {
+    static Stock getStockBY(ObjectRequest objectRequest) {
         String selectSql = "SELECT * FROM stock WHERE " + objectRequest.getWhere() + " = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
             preparedStatement.setString(1, objectRequest.getWhereValue());

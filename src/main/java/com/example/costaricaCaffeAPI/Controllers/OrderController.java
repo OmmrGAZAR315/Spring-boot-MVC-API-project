@@ -1,9 +1,9 @@
 package com.example.costaricaCaffeAPI.Controllers;
 
-import com.example.costaricaCaffeAPI.Models.Order;
+import com.example.costaricaCaffeAPI.Decorators.*;
+import com.example.costaricaCaffeAPI.Models.*;
 import com.example.costaricaCaffeAPI.Requests.ObjectRequest;
 import com.example.costaricaCaffeAPI.dbConnection;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
@@ -25,7 +25,7 @@ public class OrderController {
                         resultSet.getInt("id"),
                         resultSet.getString("beverageType"),
                         resultSet.getString("cupOwner"),
-                        resultSet.getString("receipt"),
+                        resultSet.getString("description"),
                         resultSet.getDouble("total"),
                         resultSet.getTimestamp("created_at").toLocalDateTime()
                 );
@@ -38,17 +38,47 @@ public class OrderController {
 
     }
 
+    @PostMapping("/coffee")
+    public Beverage coffee(@RequestBody Coffee coffee) {
+        return coffee;
+    }
+
+    @PostMapping("/tea")
+    public Beverage tea(@RequestBody Tea tea) {
+        return tea;
+    }
+
+    @PatchMapping("/addMilk")
+    public Beverage addMilk(@RequestBody Coffee beverage) {
+        return new MilkDecorator(beverage);
+    }
+
+    @PatchMapping("/addHoney")
+    public Beverage addHoney(@RequestBody Tea beverage) {
+        return new HoneyDecorator(beverage);
+    }
+
     @PostMapping
-    public Order store(@RequestBody Order order) {
-        LocalDateTime dateTime = LocalDateTime.now();
+    public Order store(@RequestBody Coffee beverage) {
+        Stock stock = StockController.getStockBY(new ObjectRequest(
+                "", "", "type", beverage.getType()));
+
+        if (stock != null && stock.getQuantity() > beverage.getGram())
+            StockController.update(new ObjectRequest(
+                    "quantity", String.valueOf(stock.getQuantity() - beverage.getGram()),
+                    "type", beverage.getType()));
+
+        else return new Order(0, "Out of stock", "", "", 0, null);
+
         String insertSql =
-                "INSERT INTO `order` (beverageType, cupOwner, receipt, total,created_at ) VALUES (?, ?,?,?,?)";
+                "INSERT INTO `order` (beverageType, cupOwner, description ,total,created_at ) " +
+                        "VALUES (?, ?,?,?,?)";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-            preparedStatement.setString(1, order.getBeverageType());
-            preparedStatement.setString(2, order.getCupOwner());
-            preparedStatement.setString(3, order.getReceipt());
-            preparedStatement.setDouble(4, order.getTotal());
-            preparedStatement.setTimestamp(5, Timestamp.valueOf(dateTime));
+            preparedStatement.setString(1, beverage.getType());
+            preparedStatement.setString(2, beverage.getOwnerName());
+            preparedStatement.setString(3, beverage.getDescription());
+            preparedStatement.setDouble(4, beverage.getCost());
+            preparedStatement.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
 
             int rowsAffected = preparedStatement.executeUpdate();
 
@@ -70,7 +100,7 @@ public class OrderController {
     }
 
     @DeleteMapping
-    public Order destroy(@RequestBody ObjectRequest objectRequest)  {
+    public Order destroy(@RequestBody ObjectRequest objectRequest) {
         String deleteSql = "DELETE FROM `order` WHERE " + objectRequest.getWhere() + " = ?";
         Order order = getOrderBY(objectRequest);
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {
@@ -116,7 +146,7 @@ public class OrderController {
                             resultSet.getInt("id"),
                             resultSet.getString("beverageType"),
                             resultSet.getString("cupOwner"),
-                            resultSet.getString("receipt"),
+                            resultSet.getString("description"),
                             resultSet.getDouble("total"),
                             resultSet.getTimestamp("created_at").toLocalDateTime()
                     );

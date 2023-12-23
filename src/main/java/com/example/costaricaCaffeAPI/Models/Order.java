@@ -6,18 +6,16 @@ public class Order {
     private int id;
     private String beverageType;
     private String cupOwner;
-    private String receipt;
+    private String description;
     private double total;
-
-
 
     private LocalDateTime localDateTime;
 
-    public Order(int id, String beverageType, String cupOwner, String receipt, double total, LocalDateTime localDateTime) {
+    public Order(int id, String beverageType, String cupOwner, String description, double total, LocalDateTime localDateTime) {
         setId(id);
         setBeverageType(beverageType);
         setCupOwner(cupOwner);
-        setReceipt(receipt);
+        setDescription(description);
         setTotal(total);
         setLocalDateTime(localDateTime);
     }
@@ -52,12 +50,12 @@ public class Order {
         this.cupOwner = cupOwner;
     }
 
-    public String getReceipt() {
-        return receipt;
+    public String getDescription() {
+        return description;
     }
 
-    public void setReceipt(String receipt) {
-        this.receipt = receipt;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public double getTotal() {

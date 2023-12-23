@@ -1,8 +1,9 @@
 package com.example.costaricaCaffeAPI.Models;
 
 public class Tea extends Beverage {
-
-    public Tea(int id, String ownerName, double cost, String description, String size) {
-        super(id, ownerName, cost, description, size);
+    public Tea(String ownerName, double cost, String size) {
+        super(ownerName, cost, size);
+        setType("Tea");
+        setDescription("Plain tea");
     }
 }

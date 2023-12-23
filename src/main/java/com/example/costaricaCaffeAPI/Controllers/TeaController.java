@@ -16,9 +16,9 @@ public class TeaController {
     @GetMapping("/api/tea")
     public List<Tea> getAllTea() {
         return Arrays.asList(
-                new Tea(1, "John", 10.0, "Tea", "Large"),
-                new Tea(2, "Jane", 10.0, "Tea", "Large"),
-                new Tea(3, "Max", 10.0, "Tea", "Large")
+//                new Tea(1, "John", 10.0, "Tea", "Large"),
+//                new Tea(2, "Jane", 10.0, "Tea", "Large"),
+//                new Tea(3, "Max", 10.0, "Tea", "Large")
         );
     }
 }

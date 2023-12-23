@@ -1,19 +1,45 @@
 package com.example.costaricaCaffeAPI.Models;
 
-public abstract class Beverage{
+
+public abstract class Beverage {
     private int id;
     private String ownerName;
+    private String type;
     private double cost;
     private String description;
     private String size;
-    private String imageUrl;
+    private double gram;
 
-    public Beverage(int id, String ownerName, double cost, String description, String size) {
-        setId(id);
+    public Beverage() {
+    }
+
+    public Beverage(String ownerName, double cost, String size) {
         setOwnerName(ownerName);
         setCost(cost);
-        setDescription(description);
         setSize(size);
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setSize(String size) {
+        switch (size) {
+            case "Large":
+                setGram(15);
+                break;
+            case "Medium":
+                setGram(10);
+                break;
+            case "Small":
+                setGram(5);
+                break;
+        }
+        this.size = size;
     }
 
     public int getId() {
@@ -41,7 +67,10 @@ public abstract class Beverage{
     }
 
     public String getDescription() {
-        return description;
+        if (description != null)
+            return description;
+
+        return null;
     }
 
     public void setDescription(String description) {
@@ -52,11 +81,13 @@ public abstract class Beverage{
         return size;
     }
 
-    public void setSize(String size) {
-        this.size = size;
+
+    public double getGram() {
+        return gram;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public void setGram(double mg) {
+        this.gram = mg;
     }
+
 }
