@@ -14,6 +14,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/order")
 public class OrderController {
+    private Beverage beverage;
+
     @GetMapping
     public List<Order> index() {
         List<Order> orderList = new ArrayList<>();
@@ -23,7 +25,7 @@ public class OrderController {
             while (resultSet.next()) {
                 Order order = new Order(
                         resultSet.getInt("id"),
-                        resultSet.getString("beverageType"),
+                        resultSet.getString("type"),
                         resultSet.getString("cupOwner"),
                         resultSet.getString("description"),
                         resultSet.getDouble("total"),
@@ -38,11 +40,11 @@ public class OrderController {
 
     }
 
-
     @PostMapping
-    public Order store(@RequestBody Coffee beverage) {
-        Stock stock = StockController.getStockBY(new ObjectRequest(
-                "", "", "type", beverage.getType()));
+    public Order store() {
+        Stock stock = StockController.getStockBY(
+                new ObjectRequest(
+                        "", "", "type", beverage.getType()));
 
         if (stock != null && stock.getQuantity() > beverage.getGram())
             StockController.update(new ObjectRequest(
@@ -52,7 +54,7 @@ public class OrderController {
         else return new Order(0, "Out of stock", "", "", 0, null);
 
         String insertSql =
-                "INSERT INTO `order` (beverageType, cupOwner, description ,total,created_at ) " +
+                "INSERT INTO `order` (type, cupOwner, description ,total,created_at ) " +
                         "VALUES (?, ?,?,?,?)";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, beverage.getType());
@@ -98,7 +100,6 @@ public class OrderController {
     }
 
 
-
     @PatchMapping
     public Order update(@RequestBody ObjectRequest objectRequest) {
         String updateSql = "UPDATE `order` SET " + objectRequest.getUpdateColumn()
@@ -127,7 +128,7 @@ public class OrderController {
                 if (resultSet.next()) {
                     return new Order(
                             resultSet.getInt("id"),
-                            resultSet.getString("beverageType"),
+                            resultSet.getString("type"),
                             resultSet.getString("cupOwner"),
                             resultSet.getString("description"),
                             resultSet.getDouble("total"),
@@ -141,5 +142,66 @@ public class OrderController {
         return null;
     }
 
+    @PostMapping("/coffee")
+    public Beverage coffee(@RequestBody Coffee coffee) {
+        beverage = coffee;
+        return coffee;
+    }
+
+    @PostMapping("/tea")
+    public Beverage tea(@RequestBody Tea tea) {
+        beverage = tea;
+        return tea;
+    }
+
+    @PostMapping("/hotChocolate")
+    public Beverage hotChocolate(@RequestBody Hot_Chocolate hotChocolate) {
+        beverage = hotChocolate;
+        return hotChocolate;
+    }
+
+    @PatchMapping("/addMilk")
+    public Beverage addMilk(@RequestBody Coffee b) {
+        setGlobalBeverage(b);
+
+        Beverage milkDecorator = new MilkDecorator(b);
+        updateGlobalBeverage(milkDecorator);
+        return milkDecorator;
+    }
+
+    @PatchMapping("/addMint")
+    public Beverage addMint(@RequestBody Coffee b) {
+        setGlobalBeverage(b);
+
+        Beverage mintDecorator = new MintDecorator(b);
+        updateGlobalBeverage(mintDecorator);
+        return mintDecorator;
+    }
+
+    @PatchMapping("/addHoney")
+    public Beverage addHoney(@RequestBody Coffee b) {
+        setGlobalBeverage(b);
+
+        Beverage honeyDecorator = new HoneyDecorator(b);
+        updateGlobalBeverage(honeyDecorator);
+        return honeyDecorator;
+    }
+
+    @DeleteMapping("/removeAll")
+    public String destroy() {
+        beverage = null;
+        return "All Toppings Removed";
+    }
+
+    private void setGlobalBeverage(Coffee b) {
+        b.setType(beverage.getType());
+        b.setDescription(beverage.getDescription());
+        b.setCost(beverage.getCost());
+    }
+
+    private void updateGlobalBeverage(Beverage milkDecorator) {
+        beverage.setCost(milkDecorator.getCost());
+        beverage.setDescription(milkDecorator.getDescription());
+    }
 }
 

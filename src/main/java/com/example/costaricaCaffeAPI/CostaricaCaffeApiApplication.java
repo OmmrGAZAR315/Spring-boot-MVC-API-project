@@ -13,7 +13,7 @@ public class CostaricaCaffeApiApplication {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                if ( !dbConnection.getConnection().isClosed()) {
+                if (!dbConnection.getConnection().isClosed()) {
                     dbConnection.closeConnection();
                     System.out.println("Database connection closed.");
                 }

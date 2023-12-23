@@ -4,16 +4,16 @@ import java.time.LocalDateTime;
 
 public class Order {
     private int id;
-    private String beverageType;
+    private String type;
     private String cupOwner;
     private String description;
     private double total;
 
     private LocalDateTime localDateTime;
 
-    public Order(int id, String beverageType, String cupOwner, String description, double total, LocalDateTime localDateTime) {
+    public Order(int id, String type, String cupOwner, String description, double total, LocalDateTime localDateTime) {
         setId(id);
-        setBeverageType(beverageType);
+        setType(type);
         setCupOwner(cupOwner);
         setDescription(description);
         setTotal(total);
@@ -34,12 +34,12 @@ public class Order {
         this.id = id;
     }
 
-    public String getBeverageType() {
-        return beverageType;
+    public String getType() {
+        return type;
     }
 
-    public void setBeverageType(String beverageType) {
-        this.beverageType = beverageType;
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getCupOwner() {

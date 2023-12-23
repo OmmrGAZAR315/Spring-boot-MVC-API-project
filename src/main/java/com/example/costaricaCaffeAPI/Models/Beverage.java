@@ -7,6 +7,7 @@ import org.springframework.lang.Nullable;
 
 public abstract class Beverage {
     private String ownerName;
+    @JsonIgnore
     private String type;
     @JsonIgnore
     private double cost;
@@ -28,10 +29,12 @@ public abstract class Beverage {
         this.cost = cost;
     }
 
+    @JsonGetter("type")
     public String getType() {
         return type;
     }
 
+    @JsonIgnore
     public void setType(String type) {
         this.type = type;
     }
