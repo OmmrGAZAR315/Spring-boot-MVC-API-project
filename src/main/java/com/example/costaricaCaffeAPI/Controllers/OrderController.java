@@ -1,53 +1,54 @@
 package com.example.costaricaCaffeAPI.Controllers;
 
-import com.example.costaricaCaffeAPI.Models.Stock;
+import com.example.costaricaCaffeAPI.Models.Order;
 import com.example.costaricaCaffeAPI.Requests.ObjectRequest;
 import com.example.costaricaCaffeAPI.dbConnection;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/stock")
-public class StockController {
+@RequestMapping("/api/order")
+public class OrderController {
     @GetMapping
-    public List<Stock> index() {
-        List<Stock> stockList = new ArrayList<>();
-        String selectSql = "SELECT * FROM stock";
+    public List<Order> index() {
+        List<Order> orderList = new ArrayList<>();
+        String selectSql = "SELECT * FROM `order`";
         try (Statement statement = dbConnection.getConnection().createStatement();
              ResultSet resultSet = statement.executeQuery(selectSql)) {
             while (resultSet.next()) {
-                Stock stock = new Stock(
+                Order order = new Order(
                         resultSet.getInt("id"),
-                        resultSet.getString("type"),
-                        resultSet.getDouble("quantity"),
-                        resultSet.getString("vendorName"),
-                        resultSet.getDouble("price")
+                        resultSet.getString("beverageType"),
+                        resultSet.getString("cupOwner"),
+                        resultSet.getString("receipt"),
+                        resultSet.getDouble("total"),
+                        resultSet.getTimestamp("created_at").toLocalDateTime()
                 );
-                stockList.add(stock);
+                orderList.add(order);
             }
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
-        return stockList;
+        return orderList;
 
     }
 
     @PostMapping
-    public Stock store(@RequestBody Stock stock) {
-        checkUnique(stock.getType());
-
+    public Order store(@RequestBody Order order) {
+        LocalDateTime dateTime = LocalDateTime.now();
         String insertSql =
-                "INSERT INTO stock (type, quantity,vendorName,price) " +
-                        "VALUES (?, ?,?, ? )";
+                "INSERT INTO `order` (beverageType, cupOwner, receipt, total,created_at ) VALUES (?, ?,?,?,?)";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-            preparedStatement.setString(1, stock.getType());
-            preparedStatement.setDouble(2, stock.getQuantity());
-            preparedStatement.setString(3, stock.getVendorName());
-            preparedStatement.setDouble(4, stock.getPrice());
+            preparedStatement.setString(1, order.getBeverageType());
+            preparedStatement.setString(2, order.getCupOwner());
+            preparedStatement.setString(3, order.getReceipt());
+            preparedStatement.setDouble(4, order.getTotal());
+            preparedStatement.setTimestamp(5, Timestamp.valueOf(dateTime));
 
             int rowsAffected = preparedStatement.executeUpdate();
 
@@ -57,13 +58,8 @@ public class StockController {
 
             try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    return new Stock(
-                            generatedKeys.getInt(1),
-                            stock.getType(),
-                            stock.getQuantity(),
-                            stock.getVendorName(),
-                            stock.getPrice()
-                    );
+                    ObjectRequest objectRequest = new ObjectRequest("", "", "id", String.valueOf(generatedKeys.getInt(1)));
+                    return getOrderBY(objectRequest);
                 } else {
                     throw new SQLException("Creating user failed, no ID obtained.");
                 }
@@ -74,25 +70,25 @@ public class StockController {
     }
 
     @DeleteMapping
-    public Stock destroy(@RequestBody ObjectRequest objectRequest) throws JsonProcessingException {
-        String deleteSql = "DELETE FROM stock WHERE " + objectRequest.getWhere() + " = ?";
-        Stock stock = getStockBY(objectRequest);
+    public Order destroy(@RequestBody ObjectRequest objectRequest)  {
+        String deleteSql = "DELETE FROM `order` WHERE " + objectRequest.getWhere() + " = ?";
+        Order order = getOrderBY(objectRequest);
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {
             preparedStatement.setString(1, objectRequest.getWhereValue());
 
             int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
-                throw new SQLException("Deleting stock failed, no rows affected.");
+                throw new SQLException("Deleting order failed, no rows affected.");
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return stock;
+        return order;
     }
 
     @PatchMapping
-    public Stock update(@RequestBody ObjectRequest objectRequest) {
-        String updateSql = "UPDATE stock SET " + objectRequest.getUpdateColumn()
+    public Order update(@RequestBody ObjectRequest objectRequest) {
+        String updateSql = "UPDATE `order` SET " + objectRequest.getUpdateColumn()
                 + " = ? WHERE  " + objectRequest.getWhere() + "  = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(updateSql, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, objectRequest.getUpdateValue());
@@ -100,29 +96,29 @@ public class StockController {
 
             int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
-                throw new SQLException("Updating stock failed, no rows affected.");
+                throw new SQLException("Updating order failed, no rows affected.");
             }
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return getStockBY(objectRequest);
+        return getOrderBY(objectRequest);
     }
 
-    Stock getStockBY(ObjectRequest objectRequest) {
-        String selectSql = "SELECT * FROM stock WHERE " + objectRequest.getWhere() + " = ?";
+    Order getOrderBY(ObjectRequest objectRequest) {
+        String selectSql = "SELECT * FROM `order` WHERE " + objectRequest.getWhere() + " = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
             preparedStatement.setString(1, objectRequest.getWhereValue());
 
-
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    return new Stock(
+                    return new Order(
                             resultSet.getInt("id"),
-                            resultSet.getString("type"),
-                            resultSet.getDouble("quantity"),
-                            resultSet.getString("vendorName"),
-                            resultSet.getDouble("price")
+                            resultSet.getString("beverageType"),
+                            resultSet.getString("cupOwner"),
+                            resultSet.getString("receipt"),
+                            resultSet.getDouble("total"),
+                            resultSet.getTimestamp("created_at").toLocalDateTime()
                     );
                 }
             }
@@ -132,19 +128,5 @@ public class StockController {
         return null;
     }
 
-    void checkUnique(String columnValue) {
-        String checkUniquenessSql = "SELECT COUNT(*) FROM stock WHERE type = ?";
-        try (PreparedStatement checkStatement = dbConnection.getConnection().prepareStatement(checkUniquenessSql)) {
-            checkStatement.setString(1, columnValue);
-
-            try (ResultSet resultSet = checkStatement.executeQuery()) {
-                if (resultSet.next() && resultSet.getInt(1) > 0)
-                    throw new RuntimeException("Duplicate value");
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
 }
 
