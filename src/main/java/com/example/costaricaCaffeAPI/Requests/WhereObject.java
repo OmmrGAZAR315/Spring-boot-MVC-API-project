@@ -1,13 +1,12 @@
 package com.example.costaricaCaffeAPI.Requests;
 
-public class ObjectRequest {
+public class WhereObject {
     private String updateColumn;
     private String updateValue;
     private String where;
     private String whereValue;
 
-    public ObjectRequest(String updateColumn, String updateValue, String where, String whereValue) {
-//        setId(id);
+    public WhereObject(String updateColumn, String updateValue, String where, String whereValue) {
         setWhere(where);
         setWhereValue(whereValue);
         setUpdateColumn(updateColumn);

@@ -1,7 +1,7 @@
 package com.example.costaricaCaffeAPI.Controllers;
 
 import com.example.costaricaCaffeAPI.Models.Stock;
-import com.example.costaricaCaffeAPI.Requests.ObjectRequest;
+import com.example.costaricaCaffeAPI.Requests.WhereObject;
 import com.example.costaricaCaffeAPI.dbConnection;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,7 +48,7 @@ public class StockController {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return getStockBY(new ObjectRequest(null, null, "type", type));
+        return getStockBY(new WhereObject(null, null, "type", type));
     }
 
     @PostMapping
@@ -90,11 +90,11 @@ public class StockController {
     }
 
     @DeleteMapping
-    public Stock destroy(@RequestBody ObjectRequest objectRequest)  {
-        String deleteSql = "DELETE FROM stock WHERE " + objectRequest.getWhere() + " = ?";
-        Stock stock = getStockBY(objectRequest);
+    public Stock destroy(@RequestBody WhereObject whereObject)  {
+        String deleteSql = "DELETE FROM stock WHERE " + whereObject.getWhere() + " = ?";
+        Stock stock = getStockBY(whereObject);
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {
-            preparedStatement.setString(1, objectRequest.getWhereValue());
+            preparedStatement.setString(1, whereObject.getWhereValue());
 
             int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
@@ -107,12 +107,12 @@ public class StockController {
     }
 
     @PatchMapping
-    public static Stock update(@RequestBody ObjectRequest objectRequest) {
-        String updateSql = "UPDATE stock SET " + objectRequest.getUpdateColumn()
-                + " = ? WHERE  " + objectRequest.getWhere() + "  = ?";
+    public static Stock update(@RequestBody WhereObject whereObject) {
+        String updateSql = "UPDATE stock SET " + whereObject.getUpdateColumn()
+                + " = ? WHERE  " + whereObject.getWhere() + "  = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(updateSql, Statement.RETURN_GENERATED_KEYS)) {
-            preparedStatement.setString(1, objectRequest.getUpdateValue());
-            preparedStatement.setString(2, objectRequest.getWhereValue());
+            preparedStatement.setString(1, whereObject.getUpdateValue());
+            preparedStatement.setString(2, whereObject.getWhereValue());
 
             int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
@@ -122,13 +122,13 @@ public class StockController {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return getStockBY(objectRequest);
+        return getStockBY(whereObject);
     }
 
-    static Stock getStockBY(ObjectRequest objectRequest) {
-        String selectSql = "SELECT * FROM stock WHERE " + objectRequest.getWhere() + " = ?";
+    static Stock getStockBY(WhereObject whereObject) {
+        String selectSql = "SELECT * FROM stock WHERE " + whereObject.getWhere() + " = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
-            preparedStatement.setString(1, objectRequest.getWhereValue());
+            preparedStatement.setString(1, whereObject.getWhereValue());
 
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {

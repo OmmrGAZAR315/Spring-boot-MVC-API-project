@@ -10,18 +10,23 @@ public abstract class BeverageDecorator extends Beverage {
     }
 
     @Override
-    public double getCost() {
-        return wrapper.getCost();
+    public int getId() {
+        return wrapper.getId();
     }
+
+    @Override
+    public String getOwnerName() {
+        return wrapper.getOwnerName();
+    }
+
     @Override
     public String getType() {
         return wrapper.getType();
     }
 
-
     @Override
-    public String getOwnerName() {
-        return wrapper.getOwnerName();
+    public String getDescription() {
+        return wrapper.getDescription();
     }
 
     @Override
@@ -30,12 +35,14 @@ public abstract class BeverageDecorator extends Beverage {
     }
 
     @Override
+    public double getCost() {
+        return Math.floor(wrapper.getCost());
+    }
+
+    @Override
     public double getGram() {
         return wrapper.getGram();
     }
 
-    @Override
-    public String getDescription() {
-        return wrapper.getDescription();
-    }
+
 }

@@ -2,7 +2,8 @@ package com.example.costaricaCaffeAPI.Controllers;
 
 import com.example.costaricaCaffeAPI.Decorators.*;
 import com.example.costaricaCaffeAPI.Models.*;
-import com.example.costaricaCaffeAPI.Requests.ObjectRequest;
+import com.example.costaricaCaffeAPI.Requests.MakeBeverageRequest;
+import com.example.costaricaCaffeAPI.Requests.WhereObject;
 import com.example.costaricaCaffeAPI.dbConnection;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,17 +21,9 @@ public class OrderController {
     public List<Order> index() {
         List<Order> orderList = new ArrayList<>();
         String selectSql = "SELECT * FROM `order`";
-        try (Statement statement = dbConnection.getConnection().createStatement();
-             ResultSet resultSet = statement.executeQuery(selectSql)) {
+        try (Statement statement = dbConnection.getConnection().createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
             while (resultSet.next()) {
-                Order order = new Order(
-                        resultSet.getInt("id"),
-                        resultSet.getString("type"),
-                        resultSet.getString("cupOwner"),
-                        resultSet.getString("description"),
-                        resultSet.getDouble("total"),
-                        resultSet.getTimestamp("created_at").toLocalDateTime()
-                );
+                Order order = new Order(resultSet.getInt("id"), resultSet.getString("type"), resultSet.getString("cupOwner"), resultSet.getString("description"), resultSet.getDouble("total"), resultSet.getTimestamp("created_at").toLocalDateTime());
                 orderList.add(order);
             }
         } catch (SQLException ex) {
@@ -40,22 +33,19 @@ public class OrderController {
 
     }
 
-    @PostMapping
-    public Order store() {
-        Stock stock = StockController.getStockBY(
-                new ObjectRequest(
-                        "", "", "type", beverage.getType()));
+    @PostMapping("/{id}")
+    public Order store(@PathVariable int id) {
+        if (beverage == null) throw new RuntimeException("No Beverage Selected");
+        if (id != beverage.getId()) throw new RuntimeException("Invalid Beverage Id");
+
+        Stock stock = StockController.getStockBY(new WhereObject("", "", "type", beverage.getType()));
 
         if (stock != null && stock.getQuantity() > beverage.getGram())
-            StockController.update(new ObjectRequest(
-                    "quantity", String.valueOf(stock.getQuantity() - beverage.getGram()),
-                    "type", beverage.getType()));
+            StockController.update(new WhereObject("quantity", String.valueOf(stock.getQuantity() - beverage.getGram()), "type", beverage.getType()));
 
         else return new Order(0, "Out of stock", "", "", 0, null);
 
-        String insertSql =
-                "INSERT INTO `order` (type, cupOwner, description ,total,created_at ) " +
-                        "VALUES (?, ?,?,?,?)";
+        String insertSql = "INSERT INTO `order` (type, cupOwner, description ,total,created_at ) " + "VALUES (?, ?,?,?,?)";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, beverage.getType());
             preparedStatement.setString(2, beverage.getOwnerName());
@@ -71,8 +61,8 @@ public class OrderController {
 
             try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    ObjectRequest objectRequest = new ObjectRequest("", "", "id", String.valueOf(generatedKeys.getInt(1)));
-                    return getOrderBY(objectRequest);
+                    WhereObject whereObject = new WhereObject("", "", "id", String.valueOf(generatedKeys.getInt(1)));
+                    return getOrderBY(whereObject);
                 } else {
                     throw new SQLException("Creating user failed, no ID obtained.");
                 }
@@ -82,17 +72,18 @@ public class OrderController {
         }
     }
 
-    @DeleteMapping
-    public Order destroy(@RequestBody ObjectRequest objectRequest) {
-        String deleteSql = "DELETE FROM `order` WHERE " + objectRequest.getWhere() + " = ?";
-        Order order = getOrderBY(objectRequest);
+    @DeleteMapping("/{id}")
+    public Order destroy(@PathVariable int id) {
+
+        Order order = getOrderBY(new WhereObject("", "", "id", String.valueOf(id)));
+        String deleteSql = "DELETE FROM `order` WHERE id = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {
-            preparedStatement.setString(1, objectRequest.getWhereValue());
+            preparedStatement.setInt(1, id);
 
             int rowsAffected = preparedStatement.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new SQLException("Deleting order failed, no rows affected.");
-            }
+            if (rowsAffected == 0)
+                throw new SQLException("id not found");
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -101,12 +92,11 @@ public class OrderController {
 
 
     @PatchMapping
-    public Order update(@RequestBody ObjectRequest objectRequest) {
-        String updateSql = "UPDATE `order` SET " + objectRequest.getUpdateColumn()
-                + " = ? WHERE  " + objectRequest.getWhere() + "  = ?";
+    public Order update(@RequestBody WhereObject whereObject) {
+        String updateSql = "UPDATE `order` SET " + whereObject.getUpdateColumn() + " = ? WHERE  " + whereObject.getWhere() + "  = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(updateSql, Statement.RETURN_GENERATED_KEYS)) {
-            preparedStatement.setString(1, objectRequest.getUpdateValue());
-            preparedStatement.setString(2, objectRequest.getWhereValue());
+            preparedStatement.setString(1, whereObject.getUpdateValue());
+            preparedStatement.setString(2, whereObject.getWhereValue());
 
             int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
@@ -116,24 +106,17 @@ public class OrderController {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return getOrderBY(objectRequest);
+        return getOrderBY(whereObject);
     }
 
-    Order getOrderBY(ObjectRequest objectRequest) {
-        String selectSql = "SELECT * FROM `order` WHERE " + objectRequest.getWhere() + " = ?";
+    Order getOrderBY(WhereObject whereObject) {
+        String selectSql = "SELECT * FROM `order` WHERE " + whereObject.getWhere() + " = ?";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
-            preparedStatement.setString(1, objectRequest.getWhereValue());
+            preparedStatement.setString(1, whereObject.getWhereValue());
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    return new Order(
-                            resultSet.getInt("id"),
-                            resultSet.getString("type"),
-                            resultSet.getString("cupOwner"),
-                            resultSet.getString("description"),
-                            resultSet.getDouble("total"),
-                            resultSet.getTimestamp("created_at").toLocalDateTime()
-                    );
+                    return new Order(resultSet.getInt("id"), resultSet.getString("type"), resultSet.getString("cupOwner"), resultSet.getString("description"), resultSet.getDouble("total"), resultSet.getTimestamp("created_at").toLocalDateTime());
                 }
             }
         } catch (SQLException e) {
@@ -142,66 +125,52 @@ public class OrderController {
         return null;
     }
 
-    @PostMapping("/coffee")
-    public Beverage coffee(@RequestBody Coffee coffee) {
-        beverage = coffee;
-        return coffee;
+    @PostMapping("/makeBeverage/{type}")
+    public Beverage makeBeverage(@RequestBody MakeBeverageRequest beverageRequest, @PathVariable String type) {
+        switch (type.toLowerCase()) {
+            case "coffee":
+                beverage = new Coffee(beverageRequest.getOwnerName(), beverageRequest.getSize());
+                break;
+            case "tea":
+                beverage = new Tea(beverageRequest.getOwnerName(), beverageRequest.getSize());
+                break;
+            case "hot chocolate":
+                beverage = new Hot_Chocolate(beverageRequest.getOwnerName(), beverageRequest.getSize());
+                break;
+            default:
+                throw new RuntimeException("Invalid Beverage Type");
+        }
+        return beverage;
     }
 
-    @PostMapping("/tea")
-    public Beverage tea(@RequestBody Tea tea) {
-        beverage = tea;
-        return tea;
+    @PatchMapping("/addTopping/{id}/{toppingType}")
+    public Beverage addTopping(@PathVariable int id, @PathVariable String toppingType) {
+        if (id != beverage.getId()) throw new RuntimeException("Invalid Beverage Id");
+        switch (toppingType.toLowerCase()) {
+            case "milk":
+                beverage = new MilkDecorator(beverage);
+                break;
+            case "mint":
+                beverage = new MintDecorator(beverage);
+                break;
+
+            case "honey":
+                beverage = new HoneyDecorator(beverage);
+                break;
+
+            default:
+                throw new RuntimeException("Invalid Topping Type");
+        }
+        return beverage;
     }
 
-    @PostMapping("/hotChocolate")
-    public Beverage hotChocolate(@RequestBody Hot_Chocolate hotChocolate) {
-        beverage = hotChocolate;
-        return hotChocolate;
-    }
-
-    @PatchMapping("/addMilk")
-    public Beverage addMilk(@RequestBody Coffee b) {
-        setGlobalBeverage(b);
-
-        Beverage milkDecorator = new MilkDecorator(b);
-        updateGlobalBeverage(milkDecorator);
-        return milkDecorator;
-    }
-
-    @PatchMapping("/addMint")
-    public Beverage addMint(@RequestBody Coffee b) {
-        setGlobalBeverage(b);
-
-        Beverage mintDecorator = new MintDecorator(b);
-        updateGlobalBeverage(mintDecorator);
-        return mintDecorator;
-    }
-
-    @PatchMapping("/addHoney")
-    public Beverage addHoney(@RequestBody Coffee b) {
-        setGlobalBeverage(b);
-
-        Beverage honeyDecorator = new HoneyDecorator(b);
-        updateGlobalBeverage(honeyDecorator);
-        return honeyDecorator;
-    }
-
-    @DeleteMapping("/removeAll")
-    public String destroy() {
-        beverage = null;
-        return "All Toppings Removed";
-    }
-
-    private void setGlobalBeverage(Coffee b) {
-        b.setType(beverage.getType());
-        b.setDescription(beverage.getDescription());
-        b.setCost(beverage.getCost());
-    }
-
-    private void updateGlobalBeverage(Beverage milkDecorator) {
-        beverage.setCost(milkDecorator.getCost());
-        beverage.setDescription(milkDecorator.getDescription());
+    @DeleteMapping("/removeAll/{id}")
+    public String removeAll(@PathVariable int id) {
+        if (beverage != null && id == beverage.getId()) {
+            beverage = null;
+            return "All Toppings Removed";
+        }
+        throw new RuntimeException("Invalid Beverage Id");
     }
 }
 

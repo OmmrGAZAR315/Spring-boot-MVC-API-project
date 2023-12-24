@@ -6,13 +6,15 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import org.springframework.lang.Nullable;
 
 public abstract class Beverage {
+    //    @JsonIgnore
+    private int id;
     private String ownerName;
     @JsonIgnore
     private String type;
-    @JsonIgnore
-    private double cost;
     private String description;
     private String size;
+    @JsonIgnore
+    private double cost;
     @JsonIgnore
     private double gram;
 
@@ -20,13 +22,27 @@ public abstract class Beverage {
     }
 
     public Beverage(String ownerName, String size) {
+        setId((int) Math.floor(Math.random() * 1000000));
         setOwnerName(ownerName);
         setSize(size);
     }
 
-    @JsonIgnore
-    public void setCost(double cost) {
-        this.cost = cost;
+    @JsonGetter("id")
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    @JsonGetter("ownerName")
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
     }
 
     @JsonGetter("type")
@@ -37,6 +53,19 @@ public abstract class Beverage {
     @JsonIgnore
     public void setType(String type) {
         this.type = type;
+    }
+
+
+    @JsonGetter("description")
+    public String getDescription() {
+        if (description != null)
+            return description;
+
+        return null;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public void setSize(String size) {
@@ -54,37 +83,23 @@ public abstract class Beverage {
         this.size = size;
     }
 
-
-    public String getOwnerName() {
-        return ownerName;
+    @JsonGetter("size")
+    public String getSize() {
+        return size;
     }
+
+    @JsonIgnore
+    public void setCost(double cost) {
+        this.cost = cost;
+    }
+
 
     @JsonGetter("cost")
     public double getCost() {
         return Math.floor(cost);
     }
 
-    public void setOwnerName(String ownerName) {
-        this.ownerName = ownerName;
-    }
-
-
-    public String getDescription() {
-        if (description != null)
-            return description;
-
-        return null;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getSize() {
-        return size;
-    }
-
-   @JsonGetter("gram")
+    @JsonGetter("gram")
     public double getGram() {
         return gram;
     }
