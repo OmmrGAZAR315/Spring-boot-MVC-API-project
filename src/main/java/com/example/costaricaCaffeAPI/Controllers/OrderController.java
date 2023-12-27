@@ -37,14 +37,13 @@ public class OrderController {
     public Order store(@PathVariable int id) {
         if (beverage == null) throw new RuntimeException("No Beverage Selected");
         if (id != beverage.getId()) throw new RuntimeException("Invalid Beverage Id");
-
         Stock stock = StockController.getStockBY(new WhereObject("", "", "type", beverage.getType()));
 
         if (stock != null && stock.getQuantity() > beverage.getGram())
             StockController.update(new WhereObject("quantity", String.valueOf(stock.getQuantity() - beverage.getGram()), "type", beverage.getType()));
 
         else return new Order(0, "Out of stock", "", "", 0, null);
-
+//storedprocedure
         String insertSql = "INSERT INTO `order` (type, cupOwner, description ,total,created_at ) " + "VALUES (?, ?,?,?,?)";
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, beverage.getType());

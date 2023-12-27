@@ -9,7 +9,7 @@ import java.sql.SQLException;
 public class dbConnection {
     private static Connection connection = null;
     private static final String JDBC_URL =
-            "jdbc:mysql://127.0.0.1:8080/costarica_cafee";
+            "jdbc:mysql://127.0.0.1:8080/costarica_cafe";
     private static final String USER = "root";
     private static final String PASSWORD = "90950";
 
