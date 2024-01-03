@@ -36,15 +36,15 @@ public class StockController {
     }
 
     @PatchMapping("refill/{type}/{quantity}")
-    public Stock reFillStock(@PathVariable String type, @PathVariable double quantity) {
-        String selectSql = "UPDATE stock SET quantity = ?+quantity WHERE type = ?";
-        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
-            preparedStatement.setDouble(1, quantity);
-            preparedStatement.setString(2, type);
-            int rowsAffected = preparedStatement.executeUpdate();
-            if (rowsAffected == 0) {
+    public Stock reFillStock(@PathVariable String type, @PathVariable double quantity) throws SQLException {
+        String selectSql = "CALL reFillStock(?,?)";
+        try (CallableStatement callableStatement = dbConnection.getConnection().prepareCall(selectSql)) {
+            callableStatement.setDouble(1, quantity);
+            callableStatement.setString(2, type);
+            int rowsAffected = callableStatement.executeUpdate();
+            if (rowsAffected == 0)
                 throw new SQLException("Updating stock failed, no rows affected.");
-            }
+         
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -55,42 +55,37 @@ public class StockController {
     public Stock store(@RequestBody Stock stock) {
         checkUnique(stock.getType());
         Random random = new Random();
-        double price =  Math.floor(random.nextDouble(744) + 1);
-        String insertSql =
-                "INSERT INTO stock (type, quantity,vendorName,price) " +
-                        "VALUES (?, ?,?, ? )";
-        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-            preparedStatement.setString(1, stock.getType());
-            preparedStatement.setDouble(2, stock.getQuantity());
-            preparedStatement.setString(3, stock.getVendorName());
-            preparedStatement.setDouble(4, price);
+        double price = Math.floor(random.nextDouble(744) + 1);
+        String insertSql = "{ CALL stock_store(?, ?, ?, ?, ?) }";
+        try (CallableStatement callableStatement = dbConnection.getConnection().prepareCall(insertSql)) {
+            callableStatement.registerOutParameter(1, Types.INTEGER);
+            callableStatement.setString(2, stock.getType());
+            callableStatement.setDouble(3, stock.getQuantity());
+            callableStatement.setString(4, stock.getVendorName());
+            callableStatement.setDouble(5, price);
 
-            int rowsAffected = preparedStatement.executeUpdate();
+            int hasResults = callableStatement.executeUpdate();
 
-            if (rowsAffected == 0) {
-                throw new SQLException("Creating user failed, no rows affected.");
-            }
-
-            try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    return new Stock(
-                            generatedKeys.getInt(1),
-                            stock.getType(),
-                            stock.getQuantity(),
-                            stock.getVendorName(),
-                           price
-                    );
-                } else {
-                    throw new SQLException("Creating user failed, no ID obtained.");
-                }
+            if (hasResults > 0) {
+                int generatedId = callableStatement.getInt(1);
+                return new Stock(
+                        generatedId,
+                        stock.getType(),
+                        stock.getQuantity(),
+                        stock.getVendorName(),
+                        price
+                );
+            } else {
+                throw new SQLException("Creating user failed, no results obtained.");
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+
     }
 
     @DeleteMapping
-    public Stock destroy(@RequestBody WhereObject whereObject)  {
+    public Stock destroy(@RequestBody WhereObject whereObject) {
         String deleteSql = "DELETE FROM stock WHERE " + whereObject.getWhere() + " = ?";
         Stock stock = getStockBY(whereObject);
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(deleteSql)) {
