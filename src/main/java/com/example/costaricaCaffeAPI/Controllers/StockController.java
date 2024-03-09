@@ -37,15 +37,25 @@ public class StockController {
 
     @PatchMapping("refill/{type}/{quantity}")
     public Stock reFillStock(@PathVariable String type, @PathVariable double quantity) throws SQLException {
-        String selectSql = "CALL reFillStock(?,?)";
-        try (CallableStatement callableStatement = dbConnection.getConnection().prepareCall(selectSql)) {
-            callableStatement.setDouble(1, quantity);
-            callableStatement.setString(2, type);
-            int rowsAffected = callableStatement.executeUpdate();
-            if (rowsAffected == 0)
+//        String selectSql = "CALL reFillStock(?,?)";
+        String selectSql = "UPDATE stock SET quantity = ?+quantity WHERE type = ?";
+//        try (CallableStatement callableStatement = dbConnection.getConnection().prepareCall(selectSql)) {
+//            callableStatement.setDouble(1, quantity);
+//            callableStatement.setString(2, type);
+//            int rowsAffected = callableStatement.executeUpdate();
+//            if (rowsAffected == 0)
+//                throw new SQLException("Updating stock failed, no rows affected.");
+//
+//        }
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(selectSql)) {
+            preparedStatement.setDouble(1, quantity);
+            preparedStatement.setString(2, type);
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 0) {
                 throw new SQLException("Updating stock failed, no rows affected.");
-         
-        } catch (SQLException e) {
+            }
+        }
+        catch (SQLException e) {
             throw new RuntimeException(e);
         }
         return getStockBY(new WhereObject(null, null, "type", type));
