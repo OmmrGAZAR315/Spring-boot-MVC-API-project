@@ -166,7 +166,21 @@ public class OrderController {
     @DeleteMapping("/removeAll/{id}")
     public String removeAll(@PathVariable int id) {
         if (beverage != null && id == beverage.getId()) {
-            beverage = null;
+            id = beverage.getId();
+            switch (beverage.getType()) {
+                case "Coffee":
+                    beverage = new Coffee(beverage.getOwnerName(), beverage.getSize());
+                    break;
+                case "Tea":
+                    beverage = new Tea(beverage.getOwnerName(), beverage.getSize());
+                    break;
+                case "Hot Chocolate":
+                    beverage = new Hot_Chocolate(beverage.getOwnerName(), beverage.getSize());
+                    break;
+                default:
+                    throw new RuntimeException("Invalid Beverage Type");
+            }
+            beverage.setId(id);
             return "All Toppings Removed";
         }
         throw new RuntimeException("Invalid Beverage Id");
